@@ -32,11 +32,26 @@ async function run() {
         // await client.db("admin").command({ ping: 1 });
 
         const featuredCollection = client.db('assignment-12').collection('featuredSurvey');
+        const userCollection = client.db('assignment-12').collection('serveUser');
 
         app.get('/featuredSurvey', async (req, res) => {
             const fedSurvey = featuredCollection.find();
             const jobResult = await fedSurvey.toArray();
             res.send(jobResult);
+        });
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query);
+
+            if (existingUser) {
+                return res.send({ message: 'User already exists', insertedId: null })
+            }
+
+            const result = await userCollection.insertOne(user);
+            res.send(result);
         });
 
 
