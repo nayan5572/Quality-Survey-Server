@@ -1,8 +1,9 @@
 const express = require('express');
-const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 const app = express();
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 
@@ -34,20 +35,72 @@ async function run() {
         const featuredCollection = client.db('assignment-12').collection('featuredSurvey');
         const userCollection = client.db('assignment-12').collection('serveUser');
 
-        app.get('/featuredSurvey', async (req, res) => {
-            const fedSurvey = featuredCollection.find();
-            const jobResult = await fedSurvey.toArray();
-            res.send(jobResult);
+
+        // jwt related api
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token })
         });
 
-        app.post('/users', async (req, res) => {
+        // middlewares
+        const verifyToken = (req, res, next) => {
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'unauthorized access' });
+            }
+            const token = req.headers.authorization.split(' ')[1];
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+                if (error) {
+                    return res.status(401).send({ message: 'unauthorized access' });
+                }
+                req.decoded = decoded;
+                next();
+            });
+        };
+
+        // user verify admin after verifyToken
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            next();
+        }
+
+        // user related api
+        app.get('/serveUser', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
+        });
+
+
+        // admin related
+        app.get('/serveUser/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            let admin = false;
+            if (user) {
+                admin = user?.role === 'admin'
+            }
+            res.send({ admin });
+        });
+
+        // 
+        app.post('/serveUser', async (req, res) => {
             const user = req.body;
 
             const query = { email: user.email }
             const existingUser = await userCollection.findOne(query);
 
             if (existingUser) {
-                return res.send({ message: 'User already exists', insertedId: null })
+                return res.send({ message: 'user already exists', insertedId: null })
             }
 
             const result = await userCollection.insertOne(user);
@@ -55,25 +108,41 @@ async function run() {
         });
 
 
+        //
+        app.patch('/serveUser/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
 
 
+        // get data from database
+        app.get('/featuredSurvey', async (req, res) => {
+            const fedSurvey = featuredCollection.find();
+            const jobResult = await fedSurvey.toArray();
+            res.send(jobResult);
+        });
 
+        // create user data send database
+        // app.post('/users', async (req, res) => {
+        //     const user = req.body;
 
+        //     const query = { email: user.email }
+        //     const existingUser = await userCollection.findOne(query);
 
+        //     if (existingUser) {
+        //         return res.send({ message: 'User already exists', insertedId: null })
+        //     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        //     const result = await userCollection.insertOne(user);
+        //     res.send(result);
+        // });
 
 
 
