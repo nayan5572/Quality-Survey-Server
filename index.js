@@ -34,6 +34,8 @@ async function run() {
 
         const featuredCollection = client.db('assignment-12').collection('featuredSurvey');
         const userCollection = client.db('assignment-12').collection('serveUser');
+        const latestCollection = client.db('assignment-12').collection('latest');
+        const testimonialCollection = client.db('assignment-12').collection('testimonial');
 
 
         // jwt related api
@@ -127,6 +129,19 @@ async function run() {
             const fedSurvey = featuredCollection.find();
             const jobResult = await fedSurvey.toArray();
             res.send(jobResult);
+        });
+
+        // for latest data get from database to client side
+        app.get('/latest', async (req, res) => {
+            const latestData = latestCollection.find();
+            const result = await latestData.toArray();
+            res.send(result);
+        });
+
+        app.get('/testimonial', async (req, res) => {
+            const testData = testimonialCollection.find();
+            const result = await testData.toArray();
+            res.send(result);
         });
 
         // create user data send database
