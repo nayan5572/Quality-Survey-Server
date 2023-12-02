@@ -1,8 +1,8 @@
 const express = require('express');
-require('dotenv').config();
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -34,7 +34,7 @@ async function run() {
 
         const featuredCollection = client.db('assignment-12').collection('featuredSurvey');
         const userCollection = client.db('assignment-12').collection('serveUser');
-        const latestCollection = client.db('assignment-12').collection('latest');
+        const latestCollection = client.db('assignment-12').collection('latestData');
         const testimonialCollection = client.db('assignment-12').collection('testimonial');
 
 
@@ -73,7 +73,7 @@ async function run() {
         }
 
         // user related api
-        app.get('/serveUser', async (req, res) => {
+        app.get('/serveUser', verifyToken, verifyAdmin, async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
         });
@@ -82,16 +82,20 @@ async function run() {
         // admin related
         app.get('/serveUser/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
+            console.log("inserted API",);
             if (email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             }
+            console.log("From line 89");
             const query = { email: email };
             const user = await userCollection.findOne(query);
-            let admin = false;
+            console.log(user);
+            // let admin = false;
             if (user) {
                 admin = user?.role === 'admin'
             }
             res.send({ admin });
+
         });
 
         // 
@@ -123,6 +127,13 @@ async function run() {
             res.send(result);
         });
 
+        app.delete('/serveUser/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+        });
+
 
         // get data from database
         app.get('/featuredSurvey', async (req, res) => {
@@ -132,9 +143,9 @@ async function run() {
         });
 
         // for latest data get from database to client side
-        app.get('/latest', async (req, res) => {
-            const latestData = latestCollection.find();
-            const result = await latestData.toArray();
+        app.get('/latestData', async (req, res) => {
+            const latestData2 = latestCollection.find();
+            const result = await latestData2.toArray();
             res.send(result);
         });
 
