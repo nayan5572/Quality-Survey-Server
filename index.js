@@ -36,6 +36,7 @@ async function run() {
         const userCollection = client.db('assignment-12').collection('serveUser');
         const latestCollection = client.db('assignment-12').collection('latestData');
         const testimonialCollection = client.db('assignment-12').collection('testimonial');
+        const likesCollection = client.db('assignment-12').collection('likes');
 
 
         // jwt related api
@@ -142,6 +143,21 @@ async function run() {
             res.send(jobResult);
         });
 
+        // send data to database
+        app.post('/featuredSurvey', async (req, res) => {
+            const cursor = featuredCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // for special id
+        app.get('/featuredSurvey/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await featuredCollection.findOne(query);
+            res.send(result);
+        });
+
         // for latest data get from database to client side
         app.get('/latestData', async (req, res) => {
             const latestData2 = latestCollection.find();
@@ -152,6 +168,13 @@ async function run() {
         app.get('/testimonial', async (req, res) => {
             const testData = testimonialCollection.find();
             const result = await testData.toArray();
+            res.send(result);
+        });
+
+        // like and comments
+        app.post('/likes', async (req, res) => {
+            const cursor = likesCollection.find();
+            const result = await cursor.toArray();
             res.send(result);
         });
 
@@ -180,20 +203,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
