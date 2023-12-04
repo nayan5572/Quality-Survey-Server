@@ -1,8 +1,8 @@
 const express = require('express');
+require('dotenv').config();
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -144,9 +144,16 @@ async function run() {
         });
 
         // send data to database
+        // app.post('/featuredSurvey', async (req, res) => {
+        //     const cursor = featuredCollection.find();
+        //     const result = await cursor.toArray();
+        //     res.send(result);
+        // });
+
+        // create survey and sent database
         app.post('/featuredSurvey', async (req, res) => {
-            const cursor = featuredCollection.find();
-            const result = await cursor.toArray();
+            const item = req.body;
+            const result = await featuredCollection.insertOne(item);
             res.send(result);
         });
 
@@ -155,6 +162,14 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await featuredCollection.findOne(query);
+            res.send(result);
+        });
+
+        // delete items
+        app.delete('/featuredSurvey/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await featuredCollection.deleteOne(query);
             res.send(result);
         });
 
